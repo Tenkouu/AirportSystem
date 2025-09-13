@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="AirportSystemWindows.FlightStatusPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:AirportSystemWindows"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Unloaded="Page_Unloaded">
+
+    <Grid Padding="20">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Section Header -->
+                <StackPanel Orientation="Horizontal" Margin="20,25,20,25">
+                    <Border Background="{ThemeResource AccentFillColorDefaultBrush}"
+                CornerRadius="8"
+                Width="40"
+                Height="40"
+                Margin="0,0,15,0">
+                        <TextBlock Text="📊" 
+                      FontSize="20" 
+                      HorizontalAlignment="Center" 
+                      VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Flight Status Management" 
+                  FontSize="24" 
+                  FontWeight="SemiBold" 
+                  VerticalAlignment="Center"
+                  Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                </StackPanel>
+
+                <!-- Flights Table -->
+                <ListView x:Name="FlightsListView" 
+          Background="{ThemeResource LayerFillColorDefaultBrush}"
+          CornerRadius="12"
+          SelectionMode="None"
+          Margin="20">
+                    <!-- Header -->
+                    <ListView.Header>
+                        <Grid Background="{ThemeResource AccentFillColorDefaultBrush}" Padding="15,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <!-- Flight -->
+                                <ColumnDefinition Width="*"/>
+                                <!-- Departure -->
+                                <ColumnDefinition Width="*"/>
+                                <!-- Arrival -->
+                                <ColumnDefinition Width="120"/>
+                                <!-- Scheduled -->
+                                <ColumnDefinition Width="120"/>
+                                <!-- Status -->
+                                <ColumnDefinition Width="80"/>
+                                <!-- Gate -->
+                                <ColumnDefinition Width="120"/>
+                                <!-- Action -->
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="Flight" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Grid.Column="1" Text="Departure" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Grid.Column="2" Text="Arrival" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Grid.Column="3" Text="Scheduled" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Grid.Column="4" Text="Status" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Grid.Column="5" Text="Gate" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Grid.Column="6" Text="Action" FontWeight="SemiBold" Foreground="White"/>
+                        </Grid>
+                    </ListView.Header>
+
+                    <!-- Items -->
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="15,12" 
+                  BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" 
+                  BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <!-- Flight -->
+                                    <ColumnDefinition Width="*"/>
+                                    <!-- Departure -->
+                                    <ColumnDefinition Width="*"/>
+                                    <!-- Arrival -->
+                                    <ColumnDefinition Width="120"/>
+                                    <!-- Scheduled -->
+                                    <ColumnDefinition Width="120"/>
+                                    <!-- Status -->
+                                    <ColumnDefinition Width="80"/>
+                                    <!-- Gate -->
+                                    <ColumnDefinition Width="120"/>
+                                    <!-- Action -->
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="{Binding FlightNumber}" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Column="1" Text="{Binding DepartureAirport}" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Column="2" Text="{Binding ArrivalAirport}" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Column="3" Text="{Binding ScheduledTime}"/>
+
+                                <!-- Status -->
+                                <Border Grid.Column="4" 
+                        Background="{Binding StatusColor}" 
+                        CornerRadius="12" 
+                        Padding="8,4"
+                        HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Status}" 
+                               FontSize="12" 
+                               FontWeight="SemiBold" 
+                               Foreground="White" 
+                               HorizontalAlignment="Center"/>
+                                </Border>
+
+                                <TextBlock Grid.Column="5" Text="{Binding Gate}" HorizontalAlignment="Center"/>
+
+                                <!-- Action Button -->
+                                <Button Grid.Column="6" 
+                        Content="Change" 
+                        Background="{ThemeResource ControlFillColorDefaultBrush}"
+                        Padding="8,4" 
+                        FontSize="12"
+                        Click="ChangeStatusButton_Click"
+                        Tag="{Binding FlightNumber}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <!-- Alert Messages -->
+                <InfoBar x:Name="CheckInInfoBar"
+                    IsOpen="False"
+                    Margin="20,15,20,0"/>
+            </StackPanel>
+            
+            
+        </ScrollViewer>
+    </Grid>
+</Page>

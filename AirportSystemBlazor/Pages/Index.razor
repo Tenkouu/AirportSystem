@@ -1,0 +1,236 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<PageTitle>Flight Status - Real-time</PageTitle>
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px; background: #1a1a1a; min-height: 100vh;">
+    <h1 style="text-align: center; margin-bottom: 30px; color: #4a90e2; font-size: 2.5rem; font-weight: 300;">Flight Status Dashboard</h1>
+    
+    <div style="margin: 20px 0; text-align: center;">
+        @if (isConnected)
+        {
+            <span style="display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background: #28a745; color: white;">Connected</span>
+        }
+        else
+        {
+            <span style="display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background: #dc3545; color: white;">Disconnected</span>
+        }
+    </div>
+
+    <div style="margin: 20px 0; background: #2d2d2d; border-radius: 12px; padding: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+        @if (flights.Count == 0)
+        {
+            <div style="text-align: center; padding: 40px; color: #6c757d;">
+                <p>No flights found. Check console for errors.</p>
+            </div>
+        }
+        else
+        {
+            <table style="width: 100%; border-collapse: collapse; background: #2d2d2d; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+                <thead style="background: linear-gradient(135deg, #4a90e2, #357abd); color: white;">
+                    <tr>
+                        <th style="padding: 15px 20px; text-align: left; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Flight</th>
+                        <th style="padding: 15px 20px; text-align: left; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Departure</th>
+                        <th style="padding: 15px 20px; text-align: left; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Arrival</th>
+                        <th style="padding: 15px 20px; text-align: left; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Scheduled</th>
+                        <th style="padding: 15px 20px; text-align: left; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                        <th style="padding: 15px 20px; text-align: left; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Gate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var flight in flights)
+                    {
+                        <tr style="background: #3a3a3a; border-bottom: 1px solid #4a4a4a; transition: background-color 0.3s ease;">
+                            <td style="padding: 15px 20px; color: white; font-size: 14px; font-weight: 600; color: #4a90e2;">@flight.FlightNumber</td>
+                            <td style="padding: 15px 20px; color: white; font-size: 14px;">@flight.Departure</td>
+                            <td style="padding: 15px 20px; color: white; font-size: 14px;">@flight.Arrival</td>
+                            <td style="padding: 15px 20px; color: white; font-size: 14px;">@flight.ScheduledTime</td>
+                            <td style="padding: 15px 20px; color: white; font-size: 14px;">
+                                <span class="status-badge @GetStatusClass(flight.Status)" style="display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; animation: pulse 0.5s ease-in-out;">
+                                    @flight.Status
+                                </span>
+                            </td>
+                            <td style="padding: 15px 20px; color: white; font-size: 14px;">@flight.Gate</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private HubConnection? hubConnection;
+    private bool isConnected = false;
+    private List<FlightInfo> flights = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load initial flights data
+        await LoadFlightsAsync();
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl("http://localhost:5000/flightHub")
+            .Build();
+
+        hubConnection.On<object>("FlightStatusUpdated", async (update) =>
+        {
+            try
+            {
+                Console.WriteLine($"SignalR received update: {System.Text.Json.JsonSerializer.Serialize(update)}");
+                
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var flightUpdate = System.Text.Json.JsonSerializer.Deserialize<FlightStatusUpdate>(
+                    System.Text.Json.JsonSerializer.Serialize(update), options);
+
+                if (flightUpdate != null)
+                {
+                    Console.WriteLine($"Parsed update: Flight={flightUpdate.FlightNumber}, Status={flightUpdate.Status}");
+                    
+                    var flight = flights.FirstOrDefault(f => f.FlightNumber == flightUpdate.FlightNumber);
+                    if (flight != null)
+                    {
+                        Console.WriteLine($"Found flight to update: {flight.FlightNumber}");
+                        flight.Status = flightUpdate.Status;
+                        await InvokeAsync(StateHasChanged);
+                        Console.WriteLine($"UI updated for flight: {flight.FlightNumber}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Flight not found: {flightUpdate.FlightNumber}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalR update error: {ex.Message}");
+            }
+        });
+
+        try
+        {
+            await hubConnection.StartAsync();
+            isConnected = true;
+            Console.WriteLine("SignalR connected successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalR connection failed: {ex.Message}");
+            isConnected = false;
+        }
+    }
+
+        private async Task LoadFlightsAsync()
+        {
+            try
+            {
+                using var httpClient = new HttpClient();
+                var response = await httpClient.GetStringAsync("http://localhost:5000/api/flights");
+                
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var flightsData = System.Text.Json.JsonSerializer.Deserialize<List<FlightApiResponse>>(response, options);
+                
+                flights = flightsData?.Select(f => new FlightInfo
+                {
+                    FlightNumber = f.flightNumber ?? "N/A",
+                    Departure = f.arrivalAirport ?? "N/A", 
+                    Arrival = f.destinationAirport ?? "N/A",
+                    Gate = f.gate ?? "N/A",
+                    Status = GetFlightStatusString(f.flightStatus),
+                    ScheduledTime = f.time.ToString("HH:mm")
+                }).ToList() ?? new List<FlightInfo>();
+                
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                flights = new List<FlightInfo>();
+            }
+        }
+
+    private string GetFlightStatusString(int status)
+    {
+        return status switch
+        {
+            0 => "Checking In",
+            1 => "Boarding",
+            2 => "Departed",
+            3 => "Delayed",
+            4 => "Cancelled",
+            _ => "Unknown"
+        };
+    }
+
+
+    private string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Checking In" => "status-checking",
+            "Boarding" => "status-boarding",
+            "Delayed" => "status-delayed",
+            "Cancelled" => "status-cancelled",
+            "Departed" => "status-departed",
+            _ => "status-unknown"
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    public class FlightInfo
+    {
+        public string FlightNumber { get; set; } = string.Empty;
+        public string Departure { get; set; } = string.Empty;
+        public string Arrival { get; set; } = string.Empty;
+        public string Gate { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string ScheduledTime { get; set; } = string.Empty;
+    }
+
+    public class FlightStatusUpdate
+    {
+        [JsonPropertyName("flightId")]
+        public int FlightId { get; set; }
+        
+        [JsonPropertyName("flightNumber")]
+        public string FlightNumber { get; set; } = string.Empty;
+        
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+        
+        [JsonPropertyName("gate")]
+        public string Gate { get; set; } = string.Empty;
+        
+        [JsonPropertyName("timestamp")]
+        public DateTime Timestamp { get; set; }
+    }
+
+    public class FlightApiResponse
+    {
+        public int flightID { get; set; }
+        public string flightNumber { get; set; } = string.Empty;
+        public string arrivalAirport { get; set; } = string.Empty;
+        public string destinationAirport { get; set; } = string.Empty;
+        public DateTime time { get; set; }
+        public string gate { get; set; } = string.Empty;
+        public int flightStatus { get; set; }
+    }
+}
+
+<SurveyPrompt Title="How is Blazor working for you?" />

@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "APsystem (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "APsystem (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
