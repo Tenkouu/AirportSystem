@@ -17,7 +17,7 @@ namespace AirportSystemWindows.Services
         public AirportApiService()
         {
             _httpClient = new HttpClient();
-            _baseUrl = "http://192.168.1.243:5000/api"; // Your API base URL
+            _baseUrl = "http://localhost:5000/api"; 
 
             _serializerOptions = new JsonSerializerOptions
             {

@@ -15,7 +15,7 @@ namespace AirportSystemWindows.Services
 
         public SignalRService()
         {
-            _hubUrl = "http://192.168.1.243:5000/seatHub";
+            _hubUrl = "http://localhost:5000/seatHub";
         }
 
         public async Task ConnectAsync()

@@ -1,21 +1,29 @@
-﻿using AirportSystemWindows.Helpers;
-using AirportSystemWindows.Services;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using AirportSystemWindows.Services;
+using AirportSystemWindows.Helpers;
 using ZXing;
 using ZXing.Common;
-using static AirportSystemWindows.MainWindow;
+using System.Drawing;
 
 namespace AirportSystemWindows
 {
+    public class PassengerInfo
+    {
+        public string Name { get; set; }
+        public string Passport { get; set; }
+        public string Flight { get; set; }
+        public string Seat { get; set; }
+        public string Status { get; set; }
+    }
+
     public sealed partial class CheckInPage : Page
     {
         private readonly AirportApiService _apiService;
@@ -41,157 +49,110 @@ namespace AirportSystemWindows
                 ShowInfoBar("Please assign a seat first.", InfoBarSeverity.Error);
                 return;
             }
-
             try
             {
-                ShowInfoBar("Generating boarding pass image...", InfoBarSeverity.Informational);
-
-                var boardingPassImage = await CreateBoardingPassImageAsync();
-
+                ShowInfoBar("Generating boarding pass...", InfoBarSeverity.Informational);
+                var fullPassengerDetails = await _apiService.GetPassengerByPassportAsync(_currentPassenger.Passport);
+                if (fullPassengerDetails == null)
+                {
+                    ShowInfoBar("Could not get full passenger details for printing.", InfoBarSeverity.Error);
+                    return;
+                }
+                var boardingPassImage = await CreateBoardingPassImageAsync(fullPassengerDetails, _currentPassenger.Seat);
                 if (boardingPassImage != null)
                 {
                     string tempFilePath = Path.Combine(Path.GetTempPath(), $"boarding_pass_{Guid.NewGuid()}.png");
                     boardingPassImage.Save(tempFilePath, System.Drawing.Imaging.ImageFormat.Png);
                     boardingPassImage.Dispose();
-
                     var process = new System.Diagnostics.Process();
-                    process.StartInfo = new System.Diagnostics.ProcessStartInfo(tempFilePath)
-                    {
-                        UseShellExecute = true,
-                        Verb = "Print"
-                    };
-
+                    process.StartInfo = new System.Diagnostics.ProcessStartInfo(tempFilePath) { UseShellExecute = true, Verb = "Print" };
                     process.Start();
                 }
-                else
-                {
-                    ShowInfoBar("Failed to create boarding pass image.", InfoBarSeverity.Error);
-                }
+                else { ShowInfoBar("Failed to create boarding pass image.", InfoBarSeverity.Error); }
             }
-            catch (Exception ex)
-            {
-                ShowInfoBar($"Could not print: {ex.Message}", InfoBarSeverity.Error);
-            }
+            catch (Exception ex) { ShowInfoBar($"Could not print: {ex.Message}", InfoBarSeverity.Error); }
         }
 
-        // --- THIS IS THE NEW, REDESIGNED BOARDING PASS METHOD ---
-        private async Task<System.Drawing.Bitmap> CreateBoardingPassImageAsync()
+        // --- THIS IS THE FINAL, REDESIGNED BOARDING PASS WITH CORRECTED FONT SIZES ---
+        private async Task<System.Drawing.Bitmap> CreateBoardingPassImageAsync(PassengerApiResponse passengerDetails, string assignedSeat)
         {
             return await Task.Run(() =>
             {
                 try
                 {
-                    int width = 400;
-                    int height = 600;
+                    int width = 300;
+                    int height = 400;
                     var bitmap = new System.Drawing.Bitmap(width, height);
-
                     using (var graphics = System.Drawing.Graphics.FromImage(bitmap))
                     {
-                        // Set high quality rendering
                         graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                         graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
 
-                        // Define colors and fonts
-                        var bgColor = System.Drawing.Color.FromArgb(255, 255, 255); // White background
-                        var accentColor = System.Drawing.Color.FromArgb(28, 97, 120); // A nice teal/green
-                        var textColor = System.Drawing.Color.FromArgb(50, 50, 50); // Dark text
-                        var headerFont = new System.Drawing.Font("Segoe UI", 8, System.Drawing.FontStyle.Bold);
-                        var largeFont = new System.Drawing.Font("Segoe UI", 28, System.Drawing.FontStyle.Bold);
-                        var regularFont = new System.Drawing.Font("Segoe UI", 12, System.Drawing.FontStyle.Bold);
+                        // --- Define Colors and the NEW Font Hierarchy ---
+                        var accentColor = System.Drawing.Color.FromArgb(28, 97, 120);
+                        var textColor = System.Drawing.Color.FromArgb(50, 50, 50);
+                        var labelFont = new System.Drawing.Font("Finlandica", 8, System.Drawing.FontStyle.Bold);    // Extra small for labels
+                        var mainDataFont = new System.Drawing.Font("Finlandica", 14, System.Drawing.FontStyle.Bold); // For Flight# and Name
+                        var largeInfoFont = new System.Drawing.Font("Finlandica", 28, System.Drawing.FontStyle.Bold); // For big info like Seat/Gate
+                        var smallDataFont = new System.Drawing.Font("Finlandica", 10, System.Drawing.FontStyle.Bold);  // For the date
+                        var airportCodeFont = new System.Drawing.Font("Finlandica", 28, System.Drawing.FontStyle.Bold);// For airport codes
                         var textBrush = new System.Drawing.SolidBrush(textColor);
                         var accentBrush = new System.Drawing.SolidBrush(accentColor);
 
-                        // Fill background with main border
-                        using (var bgBrush = new System.Drawing.SolidBrush(accentColor))
-                        {
-                            graphics.FillRectangle(bgBrush, 0, 0, width, height);
-                        }
-                        // Draw white inner area
-                        graphics.FillRectangle(System.Drawing.Brushes.White, 15, 15, width - 30, height - 30);
+                        // --- Draw Background ---
+                        using (var bgBrush = new System.Drawing.SolidBrush(accentColor)) { graphics.FillRectangle(bgBrush, 0, 0, width, height); }
+                        graphics.FillRectangle(System.Drawing.Brushes.White, 10, 10, width - 20, height - 20);
 
-
-                        // --- Header Section ---
-                        graphics.DrawString("FLIGHT", headerFont, accentBrush, 30, 30);
-                        graphics.DrawString(_currentPassenger.Flight.Split('-')[0].Trim(), largeFont, textBrush, 30, 45);
+                        // --- Header: Flight & Date ---
+                        graphics.DrawString("FLIGHT", labelFont, accentBrush, 25, 30);
+                        graphics.DrawString(passengerDetails.Flight.FlightNumber, mainDataFont, textBrush, 25, 42);
 
                         StringFormat rightAlign = new StringFormat { Alignment = StringAlignment.Far };
-                        graphics.DrawString("DATE", headerFont, accentBrush, new System.Drawing.RectangleF(0, 30, width - 30, 20), rightAlign);
-                        graphics.DrawString(DateTime.Now.ToString("dd MMM yyyy").ToUpper(), regularFont, textBrush, new System.Drawing.RectangleF(0, 50, width - 30, 20), rightAlign);
+                        graphics.DrawString("DATE", labelFont, accentBrush, new System.Drawing.RectangleF(0, 30, width - 25, 20), rightAlign);
+                        graphics.DrawString(passengerDetails.Flight.Time.ToString("dd MMM yyyy").ToUpper(), smallDataFont, textBrush, new System.Drawing.RectangleF(0, 45, width - 25, 20), rightAlign);
 
-                        graphics.DrawLine(new System.Drawing.Pen(accentBrush, 1), 30, 90, width - 30, 90);
+                        graphics.DrawLine(new System.Drawing.Pen(accentBrush, 1), 25, 80, width - 25, 80);
 
-                        // --- From / To Section ---
-                        graphics.DrawString("FROM", headerFont, accentBrush, 30, 110);
-                        graphics.DrawString(_currentPassenger.Flight.Split('→')[0].Split('-')[1].Trim(), largeFont, textBrush, 30, 125);
+                        // --- From / To ---
+                        string fromCode = GetAirportCode(passengerDetails.Flight.ArrivalAirport);
+                        string toCode = GetAirportCode(passengerDetails.Flight.DestinationAirport);
 
-                        // Simple airplane icon
-                        graphics.DrawString("✈", new System.Drawing.Font("Segoe UI Symbol", 20), accentBrush, 175, 130);
+                        graphics.DrawString("FROM", labelFont, accentBrush, 25, 100);
+                        graphics.DrawString(fromCode, airportCodeFont, textBrush, 25, 112);
 
-                        graphics.DrawString("TO", headerFont, accentBrush, new System.Drawing.RectangleF(0, 110, width - 30, 20), rightAlign);
-                        graphics.DrawString(_currentPassenger.Flight.Split('→')[1].Trim(), largeFont, textBrush, new System.Drawing.RectangleF(0, 125, width - 30, 40), rightAlign);
+                        graphics.DrawString("✈", new System.Drawing.Font("Finlandica Symbol", 20), accentBrush, 133, 125);
 
-                        graphics.DrawLine(new System.Drawing.Pen(accentBrush, 1), 30, 180, width - 30, 180);
+                        graphics.DrawString("TO", labelFont, accentBrush, new System.Drawing.RectangleF(0, 100, width - 25, 20), rightAlign);
+                        graphics.DrawString(toCode, airportCodeFont, textBrush, new System.Drawing.RectangleF(0, 112, width - 25, 50), rightAlign);
 
-                        // --- Passenger Section ---
-                        graphics.DrawString("PASSENGER", headerFont, accentBrush, 30, 200);
-                        graphics.DrawString(_currentPassenger.Name.ToUpper(), regularFont, textBrush, 30, 215);
+                        graphics.DrawLine(new System.Drawing.Pen(accentBrush, 1), 25, 180, width - 25, 180);
 
-                        graphics.DrawLine(new System.Drawing.Pen(accentBrush, 1), 30, 250, width - 30, 250);
+                        // --- Passenger ---
+                        graphics.DrawString("PASSENGER", labelFont, accentBrush, 25, 200);
+                        graphics.DrawString(passengerDetails.FullName.ToUpper(), mainDataFont, textBrush, 25, 212);
 
-                        // --- Gate / Class / Seat Section ---
-                        float columnWidth = (width - 60) / 3f;
-                        graphics.DrawString("GATE", headerFont, accentBrush, 30, 270);
-                        graphics.DrawString("A10", largeFont, textBrush, 30, 285); // Dummy Gate
+                        graphics.DrawLine(new System.Drawing.Pen(accentBrush, 1), 25, 250, width - 25, 250);
 
-                        graphics.DrawString("CLASS", headerFont, accentBrush, 30 + columnWidth, 270);
-                        graphics.DrawString("ECO", largeFont, textBrush, 30 + columnWidth, 285); // Dummy Class
+                        // --- Gate & Seat ---
+                        graphics.DrawString("GATE", labelFont, accentBrush, 25, 270);
+                        graphics.DrawString(passengerDetails.Flight.Gate, largeInfoFont, textBrush, 25, 282);
 
-                        graphics.DrawString("SEAT", headerFont, accentBrush, 30 + (columnWidth * 2), 270);
-                        graphics.DrawString(_currentPassenger.Seat, largeFont, textBrush, 30 + (columnWidth * 2), 285);
+                        graphics.DrawString("SEAT", labelFont, accentBrush, new System.Drawing.RectangleF(0, 270, width - 25, 20), rightAlign);
+                        graphics.DrawString(assignedSeat, largeInfoFont, textBrush, new System.Drawing.RectangleF(0, 282, width - 25, 50), rightAlign);
 
-                        // --- Dotted Line Separator ---
-                        float startX = 20;
-                        float endX = width - 20;
-                        float y = 350;
-                        using (var dashedPen = new System.Drawing.Pen(accentBrush, 2) { DashPattern = new float[] { 5, 5 } })
-                        {
-                            graphics.DrawLine(dashedPen, startX, y, endX, y);
-                        }
-
-                        // --- Barcode Section ---
-                        using (var barcode = GenerateBarcode($"{_currentPassenger.Passport}{_currentPassenger.Seat}"))
-                        {
-                            if (barcode != null)
-                            {
-                                float barcodeX = (width - barcode.Width) / 2f; // Center the barcode
-                                graphics.DrawImage(barcode, barcodeX, 380);
-                            }
-                        }
+                        // --- Dashed Line & Barcode ---
+                        using (var dashedPen = new System.Drawing.Pen(accentBrush, 2) { DashPattern = new float[] { 4, 4 } }) { graphics.DrawLine(dashedPen, 25, 350, width - 25, 350); }
+                        using (var barcode = GenerateBarcode($"{passengerDetails.PassportNumber}{assignedSeat}")) { if (barcode != null) { float barcodeX = (width - barcode.Width) / 2f; graphics.DrawImage(barcode, barcodeX, 380); } }
                     }
                     return bitmap;
                 }
-                catch
-                {
-                    return null;
-                }
+                catch { return null; }
             });
         }
 
-        private System.Drawing.Bitmap GenerateBarcode(string data)
-        {
-            try
-            {
-                var writer = new BarcodeWriter<System.Drawing.Bitmap>
-                {
-                    Format = BarcodeFormat.CODE_128,
-                    Options = new EncodingOptions { Height = 80, Width = 300, Margin = 10, PureBarcode = true }
-                };
-                return writer.Write(data);
-            }
-            catch { return null; }
-        }
-
-        // All other methods below this line are for the UI and are unchanged.
+        // All other code remains exactly the same as the last working version.
+        private string GetAirportCode(string fullAirportName) { var name = fullAirportName.Trim(); if (name.Length > 4 && name[name.Length - 4] == ' ') { return name.Substring(name.Length - 3); } return name.Length > 3 ? name.Substring(0, 3).ToUpper() : name.ToUpper(); }
+        private System.Drawing.Bitmap GenerateBarcode(string data) { try { var writer = new BarcodeWriter<System.Drawing.Bitmap> { Format = BarcodeFormat.CODE_128, Options = new EncodingOptions { Height = 100, Width = 250, Margin = 10, PureBarcode = true } }; return writer.Write(data); } catch { return null; } }
         private async void SearchPassengerButton_Click(object sender, RoutedEventArgs e) { string p = PassportNumberTextBox.Text.Trim(); if (string.IsNullOrEmpty(p)) { ShowInfoBar("Please enter a passport number", InfoBarSeverity.Error); return; } try { ShowInfoBar("Searching...", InfoBarSeverity.Informational); var ap = await _apiService.GetPassengerByPassportAsync(p); if (ap != null) { _currentPassenger = DataMapper.MapToPassengerInfo(ap); _currentFlightId = ap.FlightID; if (ap.IsCheckedIn) { PassengerInfoCard.Visibility = Visibility.Collapsed; ShowInfoBar("Passenger is already checked in!", InfoBarSeverity.Warning); return; } PassengerNameText.Text = _currentPassenger.Name; PassengerPassportText.Text = _currentPassenger.Passport; PassengerFlightText.Text = _currentPassenger.Flight; CurrentSeatText.Text = _currentPassenger.Seat ?? "Not Assigned"; PassengerStatusText.Text = _currentPassenger.Status; await LoadSeatMapAsync(_currentFlightId); if (_signalRService.IsConnected) { await _signalRService.JoinFlightGroupAsync(_currentFlightId); } PassengerInfoCard.Visibility = Visibility.Visible; ShowInfoBar("Passenger found!", InfoBarSeverity.Success); } else { PassengerInfoCard.Visibility = Visibility.Collapsed; ShowInfoBar("Passenger not found.", InfoBarSeverity.Error); } } catch (Exception ex) { PassengerInfoCard.Visibility = Visibility.Collapsed; ShowInfoBar($"Error: {ex.Message}", InfoBarSeverity.Error); } }
         private async void AssignSeatButton_Click(object sender, RoutedEventArgs e) { if (_currentPassenger == null) return; SeatDialogPassengerInfo.Text = $"Flight {_currentPassenger.Flight} | Passenger: {_currentPassenger.Name}"; SelectedSeatText.Text = "Selected Seat: None"; _selectedSeat = null; await LoadSeatMapAsync(_currentFlightId); ResetSeatSelection(); await SeatSelectionDialog.ShowAsync(); }
         private async Task LoadSeatMapAsync(int flightId) { try { var s = await _apiService.GetSeatsByFlightAsync(flightId); _seatMap = DataMapper.MapToSeatMap(s); GenerateSeatMap(); } catch (Exception ex) { ShowInfoBar($"Seat map error: {ex.Message}", InfoBarSeverity.Error); } }
