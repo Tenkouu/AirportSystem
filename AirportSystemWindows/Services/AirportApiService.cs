@@ -13,12 +13,11 @@ namespace AirportSystemWindows.Services
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
 
-        // REMOVED: The old JsonSerializerOptions. We now use the Source Generator.
-
         public AirportApiService()
         {
             _httpClient = new HttpClient();
-            _baseUrl = "http://localhost:5000/api";
+            // Ensure this IP address is still correct for your Wi-Fi
+            _baseUrl = "http://10.2.202.57:5000/api";
         }
 
         public async Task<List<FlightApiResponse>> GetFlightsAsync()
@@ -26,9 +25,7 @@ namespace AirportSystemWindows.Services
             try
             {
                 var response = await _httpClient.GetStringAsync($"{_baseUrl}/flights");
-                // MODIFIED: Use the Source Generator Context
-                var flights = JsonSerializer.Deserialize(response, AppJsonSerializerContext.Default.ListFlightApiResponse);
-                return flights ?? new List<FlightApiResponse>();
+                return JsonSerializer.Deserialize(response, AppJsonSerializerContext.Default.ListFlightApiResponse);
             }
             catch (Exception ex)
             {
@@ -41,7 +38,6 @@ namespace AirportSystemWindows.Services
             try
             {
                 var response = await _httpClient.GetStringAsync($"{_baseUrl}/passengers?passport={passportNumber}");
-                // MODIFIED: Use the Source Generator Context
                 var passengers = JsonSerializer.Deserialize(response, AppJsonSerializerContext.Default.ListPassengerApiResponse);
                 return passengers?.FirstOrDefault();
             }
@@ -55,20 +51,25 @@ namespace AirportSystemWindows.Services
         {
             try
             {
-                var request = new { passportNumber, selectedSeatNumber };
-                var json = JsonSerializer.Serialize(request);
+                // This is the fix: Use a real, named class to avoid trimming issues.
+                var request = new CheckInRequest
+                {
+                    PassportNumber = passportNumber,
+                    SelectedSeatNumber = selectedSeatNumber
+                };
+
+                // Use the source generator to serialize the new request type.
+                var json = JsonSerializer.Serialize(request, AppJsonSerializerContext.Default.CheckInRequest);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync($"{_baseUrl}/checkin", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // MODIFIED: Use the Source Generator Context
                     return JsonSerializer.Deserialize(responseContent, AppJsonSerializerContext.Default.CheckInApiResponse);
                 }
                 else
                 {
-                    // MODIFIED: Use the Source Generator Context
                     var errorResponse = JsonSerializer.Deserialize(responseContent, AppJsonSerializerContext.Default.ErrorResponse);
                     throw new Exception(errorResponse?.Message ?? "Check-in failed");
                 }
@@ -97,9 +98,7 @@ namespace AirportSystemWindows.Services
             try
             {
                 var response = await _httpClient.GetStringAsync($"{_baseUrl}/seats/flight/{flightId}");
-                // MODIFIED: Use the Source Generator Context
-                var seats = JsonSerializer.Deserialize(response, AppJsonSerializerContext.Default.ListSeatApiResponse);
-                return seats ?? new List<SeatApiResponse>();
+                return JsonSerializer.Deserialize(response, AppJsonSerializerContext.Default.ListSeatApiResponse);
             }
             catch (Exception ex) { throw new Exception($"Failed to fetch seats: {ex.Message}"); }
         }
@@ -110,7 +109,15 @@ namespace AirportSystemWindows.Services
         }
     }
 
-    // These DTOs remain the same, the parameterless constructors are still good practice.
+    // --- Data Transfer Objects (DTOs) ---
+
+    // The new, named request class to prevent trimming errors.
+    public class CheckInRequest
+    {
+        public string PassportNumber { get; set; }
+        public string? SelectedSeatNumber { get; set; }
+    }
+
     public class FlightApiResponse
     {
         public FlightApiResponse() { }

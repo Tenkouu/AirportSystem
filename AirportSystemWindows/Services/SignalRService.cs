@@ -9,16 +9,17 @@ namespace AirportSystemWindows.Services
         private HubConnection? _connection;
         private readonly string _hubUrl;
 
-        // Events the UI can subscribe to
         public event Action<string>? SeatOccupied;
         public event Action<string>? SeatAvailable;
         public event Action<FlightStatusUpdate>? FlightStatusUpdated;
-        public event Action<string>? SeatSelected;   // A seat was soft-locked by another user
-        public event Action<string>? SeatDeselected; // A seat was soft-unlocked by another user
+        public event Action<string>? SeatSelected;
+        public event Action<string>? SeatDeselected;
 
         public SignalRService()
         {
-            _hubUrl = "http://localhost:5000/seatHub";
+            // --- THIS IS THE CRITICAL FIX ---
+            // It was likely still "localhost", now it points to your IP address.
+            _hubUrl = "http://10.2.202.57:5000/seatHub";
         }
 
         public async Task ConnectAsync()
@@ -28,15 +29,25 @@ namespace AirportSystemWindows.Services
 
             _connection = new HubConnectionBuilder()
                 .WithUrl(_hubUrl)
-                .WithAutomaticReconnect() // Good practice for resilience
+                .WithAutomaticReconnect()
                 .Build();
 
-            // Register event handlers for messages from the server
             _connection.On<string>("SeatOccupied", (seatNumber) => SeatOccupied?.Invoke(seatNumber));
             _connection.On<string>("SeatAvailable", (seatNumber) => SeatAvailable?.Invoke(seatNumber));
-            _connection.On<FlightStatusUpdate>("FlightStatusUpdated", (flightStatus) => FlightStatusUpdated?.Invoke(flightStatus));
             _connection.On<string>("SeatSelected", (seatNumber) => SeatSelected?.Invoke(seatNumber));
             _connection.On<string>("SeatDeselected", (seatNumber) => SeatDeselected?.Invoke(seatNumber));
+
+            // FlightStatusUpdated is handled by the other page's service, but we leave it
+            // here in case it's ever needed, to avoid confusion.
+            _connection.On<object>("FlightStatusUpdated", (flightUpdateObject) =>
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(flightUpdateObject);
+                var flightUpdate = System.Text.Json.JsonSerializer.Deserialize<FlightStatusUpdate>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (flightUpdate != null)
+                {
+                    FlightStatusUpdated?.Invoke(flightUpdate);
+                }
+            });
 
             try
             {
@@ -44,12 +55,10 @@ namespace AirportSystemWindows.Services
             }
             catch (Exception ex)
             {
-                // Don't throw, let the UI handle the disconnected state
                 Console.WriteLine($"Failed to connect to SignalR hub: {ex.Message}");
             }
         }
 
-        // Methods to send messages to the server
         public async Task SelectSeatAsync(int flightId, string seatNumber)
         {
             if (IsConnected) await _connection.InvokeAsync("SelectSeat", flightId, seatNumber);
