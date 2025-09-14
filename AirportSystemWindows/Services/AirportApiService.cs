@@ -12,17 +12,13 @@ namespace AirportSystemWindows.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
-        private readonly JsonSerializerOptions _serializerOptions;
+
+        // REMOVED: The old JsonSerializerOptions. We now use the Source Generator.
 
         public AirportApiService()
         {
             _httpClient = new HttpClient();
-            _baseUrl = "http://localhost:5000/api"; 
-
-            _serializerOptions = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
+            _baseUrl = "http://localhost:5000/api";
         }
 
         public async Task<List<FlightApiResponse>> GetFlightsAsync()
@@ -30,7 +26,8 @@ namespace AirportSystemWindows.Services
             try
             {
                 var response = await _httpClient.GetStringAsync($"{_baseUrl}/flights");
-                var flights = JsonSerializer.Deserialize<List<FlightApiResponse>>(response, _serializerOptions);
+                // MODIFIED: Use the Source Generator Context
+                var flights = JsonSerializer.Deserialize(response, AppJsonSerializerContext.Default.ListFlightApiResponse);
                 return flights ?? new List<FlightApiResponse>();
             }
             catch (Exception ex)
@@ -43,9 +40,10 @@ namespace AirportSystemWindows.Services
         {
             try
             {
-                var response = await _httpClient.GetStringAsync($"{_baseUrl}/passengers");
-                var passengers = JsonSerializer.Deserialize<List<PassengerApiResponse>>(response, _serializerOptions);
-                return passengers?.FirstOrDefault(p => p.PassportNumber == passportNumber);
+                var response = await _httpClient.GetStringAsync($"{_baseUrl}/passengers?passport={passportNumber}");
+                // MODIFIED: Use the Source Generator Context
+                var passengers = JsonSerializer.Deserialize(response, AppJsonSerializerContext.Default.ListPassengerApiResponse);
+                return passengers?.FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -65,11 +63,13 @@ namespace AirportSystemWindows.Services
 
                 if (response.IsSuccessStatusCode)
                 {
-                    return JsonSerializer.Deserialize<CheckInApiResponse>(responseContent, _serializerOptions);
+                    // MODIFIED: Use the Source Generator Context
+                    return JsonSerializer.Deserialize(responseContent, AppJsonSerializerContext.Default.CheckInApiResponse);
                 }
                 else
                 {
-                    var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseContent, _serializerOptions);
+                    // MODIFIED: Use the Source Generator Context
+                    var errorResponse = JsonSerializer.Deserialize(responseContent, AppJsonSerializerContext.Default.ErrorResponse);
                     throw new Exception(errorResponse?.Message ?? "Check-in failed");
                 }
             }
@@ -97,7 +97,8 @@ namespace AirportSystemWindows.Services
             try
             {
                 var response = await _httpClient.GetStringAsync($"{_baseUrl}/seats/flight/{flightId}");
-                var seats = JsonSerializer.Deserialize<List<SeatApiResponse>>(response, _serializerOptions);
+                // MODIFIED: Use the Source Generator Context
+                var seats = JsonSerializer.Deserialize(response, AppJsonSerializerContext.Default.ListSeatApiResponse);
                 return seats ?? new List<SeatApiResponse>();
             }
             catch (Exception ex) { throw new Exception($"Failed to fetch seats: {ex.Message}"); }
@@ -109,10 +110,10 @@ namespace AirportSystemWindows.Services
         }
     }
 
-    // API Response DTOs
+    // These DTOs remain the same, the parameterless constructors are still good practice.
     public class FlightApiResponse
     {
-        public FlightApiResponse() { } // Explicit parameterless constructor
+        public FlightApiResponse() { }
         public int FlightID { get; set; }
         public string FlightNumber { get; set; } = string.Empty;
         public string ArrivalAirport { get; set; } = string.Empty;
@@ -126,7 +127,7 @@ namespace AirportSystemWindows.Services
 
     public class PassengerApiResponse
     {
-        public PassengerApiResponse() { } // Explicit parameterless constructor
+        public PassengerApiResponse() { }
         public int PassengerID { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string PassportNumber { get; set; } = string.Empty;
@@ -139,18 +140,19 @@ namespace AirportSystemWindows.Services
 
     public class SeatApiResponse
     {
-        public SeatApiResponse() { } // Explicit parameterless constructor
+        public SeatApiResponse() { }
         public int SeatID { get; set; }
         public int FlightID { get; set; }
         public string SeatNumber { get; set; } = string.Empty;
         public bool IsOccupied { get; set; }
+        public int? PassengerID { get; set; }
         public FlightApiResponse? Flight { get; set; }
         public PassengerApiResponse? Passenger { get; set; }
     }
 
     public class CheckInApiResponse
     {
-        public CheckInApiResponse() { } // Explicit parameterless constructor
+        public CheckInApiResponse() { }
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
         public string PassengerName { get; set; } = string.Empty;
@@ -161,7 +163,7 @@ namespace AirportSystemWindows.Services
 
     public class ErrorResponse
     {
-        public ErrorResponse() { } // Explicit parameterless constructor
+        public ErrorResponse() { }
         public string Message { get; set; } = string.Empty;
     }
 }

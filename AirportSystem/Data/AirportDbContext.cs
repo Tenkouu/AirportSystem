@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using AirportSystem.Models;
+using System;
+using System.Collections.Generic;
 
 namespace AirportSystem.Data
 {
@@ -77,263 +79,76 @@ namespace AirportSystem.Data
 
         private void SeedData(ModelBuilder modelBuilder)
         {
-            // Seed Flights
+            // Step 2: Insert 10 flights
             modelBuilder.Entity<Flight>().HasData(
-                new Flight
+                new Flight { FlightID = 1, FlightNumber = "EK201", ArrivalAirport = "Dubai DXB", DestinationAirport = "New York JFK", Time = DateTime.Parse("2025-09-15 08:30:00"), Gate = "C22", FlightStatus = FlightStatus.CheckingIn },
+                new Flight { FlightID = 2, FlightNumber = "QF12", ArrivalAirport = "Sydney SYD", DestinationAirport = "Los Angeles LAX", Time = DateTime.Parse("2025-09-15 10:00:00"), Gate = "T1-45", FlightStatus = FlightStatus.CheckingIn },
+                new Flight { FlightID = 3, FlightNumber = "BA289", ArrivalAirport = "London LHR", DestinationAirport = "San Francisco SFO", Time = DateTime.Parse("2025-09-15 11:15:00"), Gate = "5A", FlightStatus = FlightStatus.Boarding },
+                new Flight { FlightID = 4, FlightNumber = "LH454", ArrivalAirport = "Frankfurt FRA", DestinationAirport = "Chicago ORD", Time = DateTime.Parse("2025-09-15 12:45:00"), Gate = "Z18", FlightStatus = FlightStatus.Delayed },
+                new Flight { FlightID = 5, FlightNumber = "AC791", ArrivalAirport = "Toronto YYZ", DestinationAirport = "Tokyo NRT", Time = DateTime.Parse("2025-09-15 14:00:00"), Gate = "F81", FlightStatus = FlightStatus.CheckingIn },
+                new Flight { FlightID = 6, FlightNumber = "SQ38", ArrivalAirport = "Singapore SIN", DestinationAirport = "Houston IAH", Time = DateTime.Parse("2025-09-15 15:20:00"), Gate = "B3", FlightStatus = FlightStatus.Boarding },
+                new Flight { FlightID = 7, FlightNumber = "AF006", ArrivalAirport = "Paris CDG", DestinationAirport = "Miami MIA", Time = DateTime.Parse("2025-09-15 16:05:00"), Gate = "K32", FlightStatus = FlightStatus.Cancelled },
+                new Flight { FlightID = 8, FlightNumber = "JL005", ArrivalAirport = "Tokyo HND", DestinationAirport = "London LHR", Time = DateTime.Parse("2025-09-15 17:55:00"), Gate = "112", FlightStatus = FlightStatus.CheckingIn },
+                new Flight { FlightID = 9, FlightNumber = "KE017", ArrivalAirport = "Seoul ICN", DestinationAirport = "Vancouver YVR", Time = DateTime.Parse("2025-09-15 19:10:00"), Gate = "2A", FlightStatus = FlightStatus.Departed },
+                new Flight { FlightID = 10, FlightNumber = "UA870", ArrivalAirport = "Sydney SYD", DestinationAirport = "San Francisco SFO", Time = DateTime.Parse("2025-09-15 21:00:00"), Gate = "G91", FlightStatus = FlightStatus.Delayed }
+            );
+
+            // Step 3: Insert the EXACT SAME 10 seats for EACH of the 10 flights.
+            var seats = new List<Seat>();
+            int seatIdCounter = 1;
+            var seatNumbers = new[] { "1A", "1B", "2A", "2B", "3A", "3B", "4A", "4B", "5A", "5B" };
+
+            for (int flightId = 1; flightId <= 10; flightId++)
+            {
+                foreach (var seatNum in seatNumbers)
                 {
-                    FlightID = 1,
-                    FlightNumber = "AA100",
-                    ArrivalAirport = "New York JFK",
-                    DestinationAirport = "Los Angeles LAX",
-                    Time = DateTime.Now.AddHours(2),
-                    Gate = "A12",
-                    FlightStatus = FlightStatus.CheckingIn
-                },
-                new Flight
-                {
-                    FlightID = 2,
-                    FlightNumber = "UA200",
-                    ArrivalAirport = "Chicago O'Hare",
-                    DestinationAirport = "Miami MIA",
-                    Time = DateTime.Now.AddHours(4),
-                    Gate = "B8",
-                    FlightStatus = FlightStatus.Boarding
-                },
-                new Flight
-                {
-                    FlightID = 3,
-                    FlightNumber = "DL300",
-                    ArrivalAirport = "Atlanta ATL",
-                    DestinationAirport = "Seattle SEA",
-                    Time = DateTime.Now.AddHours(6),
-                    Gate = "C15",
-                    FlightStatus = FlightStatus.Delayed
-                },
-                new Flight
-                {
-                    FlightID = 4,
-                    FlightNumber = "SW400",
-                    ArrivalAirport = "Dallas DFW",
-                    DestinationAirport = "Denver DEN",
-                    Time = DateTime.Now.AddHours(8),
-                    Gate = "D22",
-                    FlightStatus = FlightStatus.CheckingIn
-                },
-                new Flight
-                {
-                    FlightID = 5,
-                    FlightNumber = "BA500",
-                    ArrivalAirport = "London LHR",
-                    DestinationAirport = "New York JFK",
-                    Time = DateTime.Now.AddHours(10),
-                    Gate = "E5",
-                    FlightStatus = FlightStatus.Boarding
-                },
-                new Flight
-                {
-                    FlightID = 6,
-                    FlightNumber = "LH600",
-                    ArrivalAirport = "Frankfurt FRA",
-                    DestinationAirport = "Chicago O'Hare",
-                    Time = DateTime.Now.AddHours(12),
-                    Gate = "F12",
-                    FlightStatus = FlightStatus.Departed
-                },
-                new Flight
-                {
-                    FlightID = 7,
-                    FlightNumber = "AF700",
-                    ArrivalAirport = "Paris CDG",
-                    DestinationAirport = "Los Angeles LAX",
-                    Time = DateTime.Now.AddHours(14),
-                    Gate = "G8",
-                    FlightStatus = FlightStatus.Cancelled
-                },
-                new Flight
-                {
-                    FlightID = 8,
-                    FlightNumber = "JL800",
-                    ArrivalAirport = "Tokyo NRT",
-                    DestinationAirport = "San Francisco SFO",
-                    Time = DateTime.Now.AddHours(16),
-                    Gate = "H3",
-                    FlightStatus = FlightStatus.CheckingIn
-                },
-                new Flight
-                {
-                    FlightID = 9,
-                    FlightNumber = "KE900",
-                    ArrivalAirport = "Seoul ICN",
-                    DestinationAirport = "New York JFK",
-                    Time = DateTime.Now.AddHours(18),
-                    Gate = "I7",
-                    FlightStatus = FlightStatus.Boarding
-                },
-                new Flight
-                {
-                    FlightID = 10,
-                    FlightNumber = "SQ1000",
-                    ArrivalAirport = "Singapore SIN",
-                    DestinationAirport = "Los Angeles LAX",
-                    Time = DateTime.Now.AddHours(20),
-                    Gate = "J11",
-                    FlightStatus = FlightStatus.Delayed
+                    seats.Add(new Seat
+                    {
+                        SeatID = seatIdCounter++,
+                        FlightID = flightId,
+                        SeatNumber = seatNum,
+                        IsOccupied = false
+                    });
                 }
-            );
+            }
+            modelBuilder.Entity<Seat>().HasData(seats);
 
-            // Seed Seats for Flight 1
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 1, FlightID = 1, SeatNumber = "1A", IsOccupied = true }, // John Doe
-                new Seat { SeatID = 2, FlightID = 1, SeatNumber = "1B", IsOccupied = true }, // Jane Smith
-                new Seat { SeatID = 3, FlightID = 1, SeatNumber = "2A", IsOccupied = false },
-                new Seat { SeatID = 4, FlightID = 1, SeatNumber = "2B", IsOccupied = false },
-                new Seat { SeatID = 5, FlightID = 1, SeatNumber = "3A", IsOccupied = false },
-                new Seat { SeatID = 10, FlightID = 1, SeatNumber = "3B", IsOccupied = false },
-                new Seat { SeatID = 11, FlightID = 1, SeatNumber = "4A", IsOccupied = false },
-                new Seat { SeatID = 12, FlightID = 1, SeatNumber = "4B", IsOccupied = false },
-                new Seat { SeatID = 13, FlightID = 1, SeatNumber = "5A", IsOccupied = false }
-            );
 
-            // Seed Seats for Flight 2
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 6, FlightID = 2, SeatNumber = "1A", IsOccupied = true }, // Bob Johnson
-                new Seat { SeatID = 7, FlightID = 2, SeatNumber = "1B", IsOccupied = false },
-                new Seat { SeatID = 8, FlightID = 2, SeatNumber = "2A", IsOccupied = false },
-                new Seat { SeatID = 9, FlightID = 2, SeatNumber = "2B", IsOccupied = false },
-                new Seat { SeatID = 14, FlightID = 2, SeatNumber = "3A", IsOccupied = false },
-                new Seat { SeatID = 15, FlightID = 2, SeatNumber = "3B", IsOccupied = false },
-                new Seat { SeatID = 16, FlightID = 2, SeatNumber = "4A", IsOccupied = false }
-            );
-
-            // Seed Seats for Flight 3 (DL300)
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 17, FlightID = 3, SeatNumber = "1A", IsOccupied = false },
-                new Seat { SeatID = 18, FlightID = 3, SeatNumber = "1B", IsOccupied = false },
-                new Seat { SeatID = 19, FlightID = 3, SeatNumber = "2A", IsOccupied = false },
-                new Seat { SeatID = 20, FlightID = 3, SeatNumber = "2B", IsOccupied = false },
-                new Seat { SeatID = 21, FlightID = 3, SeatNumber = "3A", IsOccupied = false }
-            );
-
-            // Seed Seats for Flight 4 (SW400)
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 22, FlightID = 4, SeatNumber = "1A", IsOccupied = false },
-                new Seat { SeatID = 23, FlightID = 4, SeatNumber = "1B", IsOccupied = false },
-                new Seat { SeatID = 24, FlightID = 4, SeatNumber = "2A", IsOccupied = false },
-                new Seat { SeatID = 25, FlightID = 4, SeatNumber = "2B", IsOccupied = false }
-            );
-
-            // Seed Seats for Flight 5 (BA500)
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 26, FlightID = 5, SeatNumber = "1A", IsOccupied = false },
-                new Seat { SeatID = 27, FlightID = 5, SeatNumber = "1B", IsOccupied = false },
-                new Seat { SeatID = 28, FlightID = 5, SeatNumber = "2A", IsOccupied = false },
-                new Seat { SeatID = 29, FlightID = 5, SeatNumber = "2B", IsOccupied = false }
-            );
-
-            // Seed Seats for Flight 6 (LH600)
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 30, FlightID = 6, SeatNumber = "1A", IsOccupied = false },
-                new Seat { SeatID = 31, FlightID = 6, SeatNumber = "1B", IsOccupied = false },
-                new Seat { SeatID = 32, FlightID = 6, SeatNumber = "2A", IsOccupied = false }
-            );
-
-            // Seed Seats for Flight 7 (AF700)
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 33, FlightID = 7, SeatNumber = "1A", IsOccupied = false },
-                new Seat { SeatID = 34, FlightID = 7, SeatNumber = "1B", IsOccupied = false },
-                new Seat { SeatID = 35, FlightID = 7, SeatNumber = "2A", IsOccupied = false }
-            );
-
-            // Seed Seats for Flight 8 (JL800)
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 36, FlightID = 8, SeatNumber = "1A", IsOccupied = false },
-                new Seat { SeatID = 37, FlightID = 8, SeatNumber = "1B", IsOccupied = false },
-                new Seat { SeatID = 38, FlightID = 8, SeatNumber = "2A", IsOccupied = false }
-            );
-
-            // Seed Seats for Flight 9 (KE900)
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 39, FlightID = 9, SeatNumber = "1A", IsOccupied = false },
-                new Seat { SeatID = 40, FlightID = 9, SeatNumber = "1B", IsOccupied = false },
-                new Seat { SeatID = 41, FlightID = 9, SeatNumber = "2A", IsOccupied = false }
-            );
-
-            // Seed Seats for Flight 10 (SQ1000)
-            modelBuilder.Entity<Seat>().HasData(
-                new Seat { SeatID = 42, FlightID = 10, SeatNumber = "1A", IsOccupied = false },
-                new Seat { SeatID = 43, FlightID = 10, SeatNumber = "1B", IsOccupied = false },
-                new Seat { SeatID = 44, FlightID = 10, SeatNumber = "2A", IsOccupied = false }
-            );
-
-            // Seed Passengers
+            // Step 4: Insert 33 passengers. ALL of them are NOT checked in.
             modelBuilder.Entity<Passenger>().HasData(
-                new Passenger
-                {
-                    PassengerID = 1,
-                    FullName = "John Doe",
-                    PassportNumber = "P1234567",
-                    FlightID = 1,
-                    AssignedSeatID = 1,
-                    IsCheckedIn = true
-                },
-                new Passenger
-                {
-                    PassengerID = 2,
-                    FullName = "Jane Smith",
-                    PassportNumber = "P2345678",
-                    FlightID = 1,
-                    AssignedSeatID = 2,
-                    IsCheckedIn = true
-                },
-                new Passenger
-                {
-                    PassengerID = 3,
-                    FullName = "Bob Johnson",
-                    PassportNumber = "P3456789",
-                    FlightID = 2,
-                    IsCheckedIn = false
-                },
-                // Additional passengers who haven't checked in
-                new Passenger
-                {
-                    PassengerID = 4,
-                    FullName = "Alice Brown",
-                    PassportNumber = "P4567890",
-                    FlightID = 1,
-                    IsCheckedIn = false
-                },
-                new Passenger
-                {
-                    PassengerID = 5,
-                    FullName = "Charlie Wilson",
-                    PassportNumber = "P5678901",
-                    FlightID = 1,
-                    IsCheckedIn = false
-                },
-                new Passenger
-                {
-                    PassengerID = 6,
-                    FullName = "Diana Davis",
-                    PassportNumber = "P6789012",
-                    FlightID = 2,
-                    IsCheckedIn = false
-                },
-                new Passenger
-                {
-                    PassengerID = 7,
-                    FullName = "Eve Miller",
-                    PassportNumber = "P7890123",
-                    FlightID = 2,
-                    IsCheckedIn = false
-                },
-                new Passenger
-                {
-                    PassengerID = 8,
-                    FullName = "Frank Garcia",
-                    PassportNumber = "P8901234",
-                    FlightID = 1,
-                    IsCheckedIn = false
-                }
+                new Passenger { PassengerID = 1, FullName = "Liam Smith", PassportNumber = "LSM890123", FlightID = 1, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 2, FullName = "Olivia Johnson", PassportNumber = "OJO123456", FlightID = 1, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 3, FullName = "Noah Williams", PassportNumber = "NWI456789", FlightID = 1, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 4, FullName = "Sophia Chen", PassportNumber = "SCH555111", FlightID = 1, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 5, FullName = "Emma Brown", PassportNumber = "EBR789012", FlightID = 2, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 6, FullName = "Oliver Jones", PassportNumber = "OJO345678", FlightID = 2, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 7, FullName = "Chloe Green", PassportNumber = "CGR222333", FlightID = 2, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 8, FullName = "Leo Taylor", PassportNumber = "LTA444555", FlightID = 2, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 9, FullName = "Ava Garcia", PassportNumber = "AGA901234", FlightID = 3, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 10, FullName = "Elijah Miller", PassportNumber = "EMI567890", FlightID = 3, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 11, FullName = "Charlotte Davis", PassportNumber = "CDA123789", FlightID = 3, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 12, FullName = "James Rodriguez", PassportNumber = "JRO456123", FlightID = 3, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 13, FullName = "Isla Walker", PassportNumber = "IWA666777", FlightID = 3, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 14, FullName = "Sophia Wilson", PassportNumber = "SWI789456", FlightID = 4, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 15, FullName = "William Martinez", PassportNumber = "WMA012345", FlightID = 4, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 16, FullName = "Zoe Hall", PassportNumber = "ZHA888999", FlightID = 4, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 17, FullName = "Jack Lewis", PassportNumber = "JLE111000", FlightID = 4, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 18, FullName = "Isabella Anderson", PassportNumber = "IAN345012", FlightID = 5, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 19, FullName = "Henry Taylor", PassportNumber = "HTA678345", FlightID = 5, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 20, FullName = "Mia Thomas", PassportNumber = "MTH901678", FlightID = 5, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 21, FullName = "Lucas Clark", PassportNumber = "LCL777888", FlightID = 5, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 22, FullName = "Grace Scott", PassportNumber = "GSC333444", FlightID = 5, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 23, FullName = "Theodore Hernandez", PassportNumber = "THE234901", FlightID = 6, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 24, FullName = "Evelyn Moore", PassportNumber = "EMO567234", FlightID = 6, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 25, FullName = "Aria Nelson", PassportNumber = "ANE999000", FlightID = 6, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 26, FullName = "Lucas Martin", PassportNumber = "LMA890567", FlightID = 8, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 27, FullName = "Harper Jackson", PassportNumber = "HJA123890", FlightID = 8, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 28, FullName = "Mateo King", PassportNumber = "MKI555666", FlightID = 8, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 29, FullName = "Aurora Wright", PassportNumber = "AWR222111", FlightID = 8, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 30, FullName = "Benjamin Thompson", PassportNumber = "BTH456123", FlightID = 10, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 31, FullName = "Amelia White", PassportNumber = "AWH789456", FlightID = 10, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 32, FullName = "Logan Harris", PassportNumber = "LHA888777", FlightID = 10, AssignedSeatID = null, IsCheckedIn = false },
+                new Passenger { PassengerID = 33, FullName = "Penelope Allen", PassportNumber = "PAL444333", FlightID = 10, AssignedSeatID = null, IsCheckedIn = false }
             );
         }
     }
