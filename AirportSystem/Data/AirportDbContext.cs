@@ -5,21 +5,43 @@ using System.Collections.Generic;
 
 namespace AirportSystem.Data
 {
+    /// <summary>
+    /// Entity Framework database context for the airport management system.
+    /// Manages database operations for flights, passengers, and seats with proper relationships and constraints.
+    /// </summary>
     public class AirportDbContext : DbContext
     {
+        /// <summary>
+        /// Initializes a new instance of the AirportDbContext class.
+        /// </summary>
+        /// <param name="options">The database context options.</param>
         public AirportDbContext(DbContextOptions<AirportDbContext> options) : base(options)
         {
         }
 
+        /// <summary>
+        /// Gets or sets the flights database set.
+        /// </summary>
         public DbSet<Flight> Flights { get; set; }
+
+        /// <summary>
+        /// Gets or sets the passengers database set.
+        /// </summary>
         public DbSet<Passenger> Passengers { get; set; }
+
+        /// <summary>
+        /// Gets or sets the seats database set.
+        /// </summary>
         public DbSet<Seat> Seats { get; set; }
 
+        /// <summary>
+        /// Configures the entity models and their relationships for the database.
+        /// </summary>
+        /// <param name="modelBuilder">The model builder used to configure entities.</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure Flight entity
             modelBuilder.Entity<Flight>(entity =>
             {
                 entity.HasKey(e => e.FlightID);
@@ -30,7 +52,6 @@ namespace AirportSystem.Data
                 entity.Property(e => e.FlightStatus).IsRequired();
             });
 
-            // Configure Passenger entity
             modelBuilder.Entity<Passenger>(entity =>
             {
                 entity.HasKey(e => e.PassengerID);
@@ -38,10 +59,8 @@ namespace AirportSystem.Data
                 entity.Property(e => e.PassportNumber).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.IsCheckedIn).IsRequired();
 
-                // Configure unique constraint on PassportNumber
                 entity.HasIndex(e => e.PassportNumber).IsUnique();
 
-                // Configure foreign key relationships
                 entity.HasOne(e => e.Flight)
                       .WithMany(f => f.Passengers)
                       .HasForeignKey(e => e.FlightID)
@@ -53,33 +72,32 @@ namespace AirportSystem.Data
                       .OnDelete(DeleteBehavior.SetNull);
             });
 
-            // Configure Seat entity
             modelBuilder.Entity<Seat>(entity =>
             {
                 entity.HasKey(e => e.SeatID);
                 entity.Property(e => e.SeatNumber).IsRequired().HasMaxLength(10);
                 entity.Property(e => e.IsOccupied).IsRequired();
 
-                // Configure foreign key relationship
                 entity.HasOne(e => e.Flight)
                       .WithMany(f => f.Seats)
                       .HasForeignKey(e => e.FlightID)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                // Configure one-to-one relationship with Passenger
                 entity.HasOne(e => e.Passenger)
                       .WithOne(p => p.AssignedSeat)
                       .HasForeignKey<Passenger>(p => p.AssignedSeatID)
                       .OnDelete(DeleteBehavior.SetNull);
             });
 
-            // Seed data
             SeedData(modelBuilder);
         }
 
+        /// <summary>
+        /// Seeds the database with initial sample data for flights, seats, and passengers.
+        /// </summary>
+        /// <param name="modelBuilder">The model builder used to configure seed data.</param>
         private void SeedData(ModelBuilder modelBuilder)
         {
-            // Step 2: Insert 10 flights
             modelBuilder.Entity<Flight>().HasData(
                 new Flight { FlightID = 1, FlightNumber = "EK201", ArrivalAirport = "Dubai DXB", DestinationAirport = "New York JFK", Time = DateTime.Parse("2025-09-15 08:30:00"), Gate = "C22", FlightStatus = FlightStatus.CheckingIn },
                 new Flight { FlightID = 2, FlightNumber = "QF12", ArrivalAirport = "Sydney SYD", DestinationAirport = "Los Angeles LAX", Time = DateTime.Parse("2025-09-15 10:00:00"), Gate = "T1-45", FlightStatus = FlightStatus.CheckingIn },
@@ -93,7 +111,6 @@ namespace AirportSystem.Data
                 new Flight { FlightID = 10, FlightNumber = "UA870", ArrivalAirport = "Sydney SYD", DestinationAirport = "San Francisco SFO", Time = DateTime.Parse("2025-09-15 21:00:00"), Gate = "G91", FlightStatus = FlightStatus.Delayed }
             );
 
-            // Step 3: Insert the EXACT SAME 10 seats for EACH of the 10 flights.
             var seats = new List<Seat>();
             int seatIdCounter = 1;
             var seatNumbers = new[] { "1A", "1B", "2A", "2B", "3A", "3B", "4A", "4B", "5A", "5B" };
@@ -113,8 +130,6 @@ namespace AirportSystem.Data
             }
             modelBuilder.Entity<Seat>().HasData(seats);
 
-
-            // Step 4: Insert 33 passengers. ALL of them are NOT checked in.
             modelBuilder.Entity<Passenger>().HasData(
                 new Passenger { PassengerID = 1, FullName = "Liam Smith", PassportNumber = "LSM890123", FlightID = 1, AssignedSeatID = null, IsCheckedIn = false },
                 new Passenger { PassengerID = 2, FullName = "Olivia Johnson", PassportNumber = "OJO123456", FlightID = 1, AssignedSeatID = null, IsCheckedIn = false },

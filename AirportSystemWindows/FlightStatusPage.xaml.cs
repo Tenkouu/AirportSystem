@@ -1,4 +1,4 @@
-﻿ using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -19,13 +19,11 @@ using static AirportSystemWindows.MainWindow;
 using AirportSystemWindows.Services;
 using AirportSystemWindows.Helpers;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
-
 namespace AirportSystemWindows
 {
     /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
+    /// Flight status management page for the airport system.
+    /// Displays real-time flight information and allows status updates.
     /// </summary>
     public sealed partial class FlightStatusPage : Page
     {
@@ -34,6 +32,9 @@ namespace AirportSystemWindows
         private readonly SignalRService _signalRService;
         private Dictionary<string, int> _flightNumberToIdMap;
 
+        /// <summary>
+        /// Initializes a new instance of the FlightStatusPage class.
+        /// </summary>
         public FlightStatusPage()
         {
             InitializeComponent();
@@ -44,6 +45,10 @@ namespace AirportSystemWindows
             SetupSignalR();
         }
 
+        /// <summary>
+        /// Loads flight data from the API and populates the flights collection.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private async Task LoadFlightsAsync()
         {
             try
@@ -69,6 +74,9 @@ namespace AirportSystemWindows
             }
         }
 
+        /// <summary>
+        /// Sets up the user interface components and loads initial data.
+        /// </summary>
         private async void SetupUI()
         {
             _flights = new ObservableCollection<FlightInfo>();
@@ -76,16 +84,15 @@ namespace AirportSystemWindows
             await LoadFlightsAsync();
         }
 
+        /// <summary>
+        /// Establishes SignalR connection for real-time flight status updates.
+        /// </summary>
         private async void SetupSignalR()
         {
             try
             {
-                // Connect to SignalR hub
                 await _signalRService.ConnectAsync();
-                
-                // Subscribe to flight status events
                 _signalRService.FlightStatusUpdated += OnFlightStatusUpdated;
-                
                 ShowInfoBar("Real-time flight updates connected", InfoBarSeverity.Success);
             }
             catch (Exception ex)
@@ -94,9 +101,12 @@ namespace AirportSystemWindows
             }
         }
 
+        /// <summary>
+        /// Handles real-time flight status update events from SignalR.
+        /// </summary>
+        /// <param name="flightStatus">The flight status update information.</param>
         private void OnFlightStatusUpdated(FlightStatusUpdate flightStatus)
         {
-            // Update UI on the UI thread
             DispatcherQueue.TryEnqueue(() =>
             {
                 var flight = _flights.FirstOrDefault(f => f.FlightNumber == flightStatus.FlightNumber);
@@ -109,6 +119,11 @@ namespace AirportSystemWindows
             });
         }
 
+        /// <summary>
+        /// Displays an information bar message with the specified severity level.
+        /// </summary>
+        /// <param name="message">The message to display.</param>
+        /// <param name="severity">The severity level of the message.</param>
         private void ShowInfoBar(string message, InfoBarSeverity severity)
         {
             CheckInInfoBar.Title = "Message";
@@ -117,6 +132,12 @@ namespace AirportSystemWindows
             CheckInInfoBar.IsOpen = true;
         }
 
+        /// <summary>
+        /// Handles the change status button click event.
+        /// Opens a dialog to allow status changes for the selected flight.
+        /// </summary>
+        /// <param name="sender">The button that was clicked.</param>
+        /// <param name="e">Event arguments.</param>
         private async void ChangeStatusButton_Click(object sender, RoutedEventArgs e)
         {
             Button button = sender as Button;
@@ -153,10 +174,14 @@ namespace AirportSystemWindows
             }
         }
 
+        /// <summary>
+        /// Creates the content for the status selection dialog.
+        /// </summary>
+        /// <returns>A StackPanel containing radio buttons for status selection.</returns>
         private StackPanel CreateStatusSelectionContent()
         {
             var panel = new StackPanel { Spacing = 10 };
-            var statuses = new[] { "Checking In", "Delayed", "Boarding", "Cancelled" , "Departed"};
+            var statuses = new[] { "Checking In", "Delayed", "Boarding", "Cancelled", "Departed" };
 
             foreach (var status in statuses)
             {
@@ -171,6 +196,13 @@ namespace AirportSystemWindows
             return panel;
         }
 
+        /// <summary>
+        /// Updates the flight status via the API and updates the UI.
+        /// </summary>
+        /// <param name="flightId">The ID of the flight to update.</param>
+        /// <param name="flightNumber">The flight number for display purposes.</param>
+        /// <param name="newStatus">The new status to set.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private async Task UpdateFlightStatusAsync(int flightId, string flightNumber, string newStatus)
         {
             try
@@ -201,6 +233,11 @@ namespace AirportSystemWindows
             }
         }
 
+        /// <summary>
+        /// Gets the color associated with a specific flight status.
+        /// </summary>
+        /// <param name="status">The flight status.</param>
+        /// <returns>A SolidColorBrush representing the status color.</returns>
         private SolidColorBrush GetStatusColor(string status)
         {
             return status switch
@@ -214,7 +251,11 @@ namespace AirportSystemWindows
             };
         }
 
-        // Clean up SignalR connection when page is unloaded
+        /// <summary>
+        /// Handles the page unloaded event to clean up SignalR connections.
+        /// </summary>
+        /// <param name="sender">The page that was unloaded.</param>
+        /// <param name="e">Event arguments.</param>
         private async void Page_Unloaded(object sender, RoutedEventArgs e)
         {
             await _signalRService.DisconnectAsync();

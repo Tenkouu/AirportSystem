@@ -7,6 +7,10 @@ using AirportSystem.Hubs;
 
 namespace AirportSystem.Controllers
 {
+    /// <summary>
+    /// API controller for handling passenger check-in operations in the airport system.
+    /// Manages seat assignment and check-in status with real-time notifications.
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class CheckInController : ControllerBase
@@ -14,17 +18,26 @@ namespace AirportSystem.Controllers
         private readonly AirportDbContext _context;
         private readonly IHubContext<SeatHub> _hubContext;
 
+        /// <summary>
+        /// Initializes a new instance of the CheckInController class.
+        /// </summary>
+        /// <param name="context">The database context for check-in operations.</param>
+        /// <param name="hubContext">The SignalR hub context for real-time notifications.</param>
         public CheckInController(AirportDbContext context, IHubContext<SeatHub> hubContext)
         {
             _context = context;
             _hubContext = hubContext;
         }
 
-        // POST: api/checkin
+        /// <summary>
+        /// Processes passenger check-in with optional seat selection.
+        /// Assigns a seat to the passenger and updates their check-in status.
+        /// </summary>
+        /// <param name="request">The check-in request containing passport number and optional seat selection.</param>
+        /// <returns>Check-in response with passenger details and assigned seat information.</returns>
         [HttpPost]
         public async Task<ActionResult<CheckInResponse>> CheckInPassenger([FromBody] CheckInRequest request)
         {
-            // Find passenger by passport number
             var passenger = await _context.Passengers
                 .Include(p => p.Flight)
                 .FirstOrDefaultAsync(p => p.PassportNumber == request.PassportNumber);
@@ -43,7 +56,6 @@ namespace AirportSystem.Controllers
 
             if (!string.IsNullOrEmpty(request.SelectedSeatNumber))
             {
-                // Use the specifically selected seat
                 selectedSeat = await _context.Seats
                     .FirstOrDefaultAsync(s => s.FlightID == passenger.FlightID && 
                                             s.SeatNumber == request.SelectedSeatNumber);
@@ -60,7 +72,6 @@ namespace AirportSystem.Controllers
             }
             else
             {
-                // Fallback: Find any available seat for the passenger's flight
                 selectedSeat = await _context.Seats
                     .FirstOrDefaultAsync(s => s.FlightID == passenger.FlightID && !s.IsOccupied);
 
@@ -70,7 +81,6 @@ namespace AirportSystem.Controllers
                 }
             }
 
-            // Assign seat to passenger
             passenger.AssignedSeatID = selectedSeat.SeatID;
             passenger.IsCheckedIn = true;
             selectedSeat.IsOccupied = true;
@@ -80,7 +90,6 @@ namespace AirportSystem.Controllers
             {
                 await _context.SaveChangesAsync();
 
-                // Send SignalR notification to all clients in the flight group
                 await _hubContext.Clients.Group($"Flight_{passenger.FlightID}")
                     .SendAsync("SeatOccupied", selectedSeat.SeatNumber);
 
@@ -101,19 +110,56 @@ namespace AirportSystem.Controllers
         }
     }
 
+    /// <summary>
+    /// Request model for passenger check-in operations.
+    /// </summary>
     public class CheckInRequest
     {
+        /// <summary>
+        /// Gets or sets the passport number of the passenger checking in.
+        /// </summary>
         public string PassportNumber { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the preferred seat number for check-in.
+        /// If not specified, the system will assign any available seat.
+        /// </summary>
         public string? SelectedSeatNumber { get; set; }
     }
 
+    /// <summary>
+    /// Response model for passenger check-in operations.
+    /// </summary>
     public class CheckInResponse
     {
+        /// <summary>
+        /// Gets or sets a value indicating whether the check-in was successful.
+        /// </summary>
         public bool Success { get; set; }
+
+        /// <summary>
+        /// Gets or sets the status message for the check-in operation.
+        /// </summary>
         public string Message { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the full name of the checked-in passenger.
+        /// </summary>
         public string PassengerName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the flight number for the checked-in passenger.
+        /// </summary>
         public string FlightNumber { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the seat number assigned to the passenger.
+        /// </summary>
         public string SeatNumber { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the gate number for the passenger's flight.
+        /// </summary>
         public string Gate { get; set; } = string.Empty;
     }
 }

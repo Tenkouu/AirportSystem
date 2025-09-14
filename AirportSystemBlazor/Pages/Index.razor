@@ -70,7 +70,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load initial flights data
         await LoadFlightsAsync();
 
         hubConnection = new HubConnectionBuilder()
@@ -127,36 +126,36 @@
         }
     }
 
-        private async Task LoadFlightsAsync()
+    private async Task LoadFlightsAsync()
+    {
+        try
         {
-            try
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetStringAsync("http://10.3.202.148:5000/api/flights");
+            
+            var options = new JsonSerializerOptions
             {
-                using var httpClient = new HttpClient();
-                var response = await httpClient.GetStringAsync("http://10.3.202.148:5000/api/flights");
-                
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-                var flightsData = System.Text.Json.JsonSerializer.Deserialize<List<FlightApiResponse>>(response, options);
-                
-                flights = flightsData?.Select(f => new FlightInfo
-                {
-                    FlightNumber = f.flightNumber ?? "N/A",
-                    Departure = f.arrivalAirport ?? "N/A", 
-                    Arrival = f.destinationAirport ?? "N/A",
-                    Gate = f.gate ?? "N/A",
-                    Status = GetFlightStatusString(f.flightStatus),
-                    ScheduledTime = f.time.ToString("HH:mm")
-                }).ToList() ?? new List<FlightInfo>();
-                
-                StateHasChanged();
-            }
-            catch (Exception ex)
+                PropertyNameCaseInsensitive = true
+            };
+            var flightsData = System.Text.Json.JsonSerializer.Deserialize<List<FlightApiResponse>>(response, options);
+            
+            flights = flightsData?.Select(f => new FlightInfo
             {
-                flights = new List<FlightInfo>();
-            }
+                FlightNumber = f.flightNumber ?? "N/A",
+                Departure = f.arrivalAirport ?? "N/A", 
+                Arrival = f.destinationAirport ?? "N/A",
+                Gate = f.gate ?? "N/A",
+                Status = GetFlightStatusString(f.flightStatus),
+                ScheduledTime = f.time.ToString("HH:mm")
+            }).ToList() ?? new List<FlightInfo>();
+            
+            StateHasChanged();
         }
+        catch (Exception ex)
+        {
+            flights = new List<FlightInfo>();
+        }
+    }
 
     private string GetFlightStatusString(int status)
     {
@@ -233,4 +232,3 @@
     }
 }
 
-<SurveyPrompt Title="How is Blazor working for you?" />
