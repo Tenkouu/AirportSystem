@@ -16,8 +16,7 @@ namespace AirportSystemWindows.Services
         public AirportApiService()
         {
             _httpClient = new HttpClient();
-            // Ensure this IP address is still correct for your Wi-Fi
-            _baseUrl = "http://10.2.202.57:5000/api";
+            _baseUrl = "http://10.3.202.148:5000/api";
         }
 
         public async Task<List<FlightApiResponse>> GetFlightsAsync()

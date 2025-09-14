@@ -17,9 +17,8 @@ namespace AirportSystemWindows.Services
 
         public SignalRService()
         {
-            // --- THIS IS THE CRITICAL FIX ---
-            // It was likely still "localhost", now it points to your IP address.
-            _hubUrl = "http://10.2.202.57:5000/seatHub";
+ 
+            _hubUrl = "http://10.3.202.148:5000/seatHub";
         }
 
         public async Task ConnectAsync()
