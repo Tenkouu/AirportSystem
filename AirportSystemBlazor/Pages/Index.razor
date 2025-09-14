@@ -74,7 +74,7 @@
         await LoadFlightsAsync();
 
         hubConnection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:5000/flightHub")
+            .WithUrl("http://10.3.202.148:5000/flightHub")
             .Build();
 
         hubConnection.On<object>("FlightStatusUpdated", async (update) =>
@@ -132,7 +132,7 @@
             try
             {
                 using var httpClient = new HttpClient();
-                var response = await httpClient.GetStringAsync("http://localhost:5000/api/flights");
+                var response = await httpClient.GetStringAsync("http://10.3.202.148:5000/api/flights");
                 
                 var options = new JsonSerializerOptions
                 {
